@@ -1,0 +1,119 @@
+name: regression-hunter-ai
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: infra/compose/Dockerfile.worker
+  image: regression-hunter-ai:local
+  restart: unless-stopped
+  environment: &app-env
+    ENVIRONMENT: local
+    RH_ENABLE_AUTH: "false"
+    RH_ENABLE_PERSISTENCE: "true"
+    POSTGRES_DSN: postgresql://${POSTGRES_USER:-rh}:${POSTGRES_PASSWORD:-rh_dev_password}@postgres:5432/regression_hunter
+    RABBITMQ_URL: amqp://${RABBITMQ_USER:-rh}:${RABBITMQ_PASSWORD:-rh_dev_password}@rabbitmq:5672/
+    S3_ENDPOINT: http://minio:9000
+    S3_ACCESS_KEY: ${S3_ACCESS_KEY:-rh_minio}
+    S3_SECRET_KEY: ${S3_SECRET_KEY:-rh_minio_password}
+    S3_BUCKET: regression-hunter
+    GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-rh_webhook_secret_dev}
+    DATAHUB_MCP_URL: ${DATAHUB_MCP_URL:-}
+    DATAHUB_TOKEN: ${DATAHUB_TOKEN:-}
+    LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+    LLM_API_KEY: ${LLM_API_KEY:-}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16.9-alpine
+    environment:
+      POSTGRES_DB: regression_hunter
+      POSTGRES_USER: ${POSTGRES_USER:-rh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rh_dev_password}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.1.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rh}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rh_dev_password}
+    ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-rh_minio}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-rh_minio_password}
+
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
+    volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["alembic", "-c", "db/alembic.ini", "upgrade", "head"]
+
+  pr-listener:
+    <<: *app
+    command: ["uvicorn", "pr_listener.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["127.0.0.1:8000:8000"]
+
+  api-gateway:
+    <<: *app
+    command: ["uvicorn", "api_gateway.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports: ["127.0.0.1:8001:8001"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  repo-worker:
+    <<: *app
+    command: ["repo_worker.consumer"]
+  diff-analyzer:
+    <<: *app
+    command: ["diff_analyzer.consumer"]
+  code-intelligence:
+    <<: *app
+    command: ["code_intelligence.consumer"]
+  context-orchestrator:
+    <<: *app
+    command: ["context_orchestrator.consumer"]
+  risk-engine:
+    <<: *app
+    command: ["risk_engine.consumer"]
+  reasoning-agent:
+    <<: *app
+    command: ["reasoning_agent.consumer"]
+  test-agent:
+    <<: *app
+    command: ["test_agent.consumer"]
+  publisher:
+    <<: *app
+    command: ["publisher.consumer"]
+
+volumes:
+  pgdata:
+  miniodata:

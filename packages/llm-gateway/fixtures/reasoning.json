@@ -1,0 +1,81 @@
+{
+  "risk_score": 75,
+  "risk_level": "high",
+  "regression_probability": 0.65,
+  "impact_severity": 0.82,
+  "confidence": 85,
+  "requires_human_review": true,
+  "hypotheses": [
+    {
+      "mechanism": "contract_mismatch",
+      "impacted_urns": [
+        "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)"
+      ],
+      "evidence_refs": [
+        "symbol:src/parser.py:parse_amount",
+        "lineage:path:8f7a"
+      ],
+      "confidence": 0.88,
+      "recommended_test_ids": ["test_parse_amount_negative", "test_parse_amount_precision"]
+    }
+  ],
+  "affected_assets": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "type": "DATASET",
+      "impact": "payment amount may be parsed incorrectly",
+      "distance": 2,
+      "evidence_refs": [
+        "symbol:src/parser.py:parse_amount",
+        "lineage:path:8f7a"
+      ]
+    }
+  ],
+  "affected_dashboards": [],
+  "affected_datasets": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "type": "DATASET",
+      "impact": "payment amount may be parsed incorrectly",
+      "distance": 2,
+      "evidence_refs": [
+        "symbol:src/parser.py:parse_amount",
+        "lineage:path:8f7a"
+      ]
+    }
+  ],
+  "affected_ml_models": [],
+  "affected_jobs": [],
+  "recommended_tests": [
+    {
+      "kind": "unit_test",
+      "priority": 1,
+      "title": "Test parse_amount with negative values",
+      "body": "Add test case for negative payment amounts to ensure parser handles them correctly.",
+      "target_path": "tests/test_parser.py",
+      "evidence_refs": ["symbol:src/parser.py:parse_amount"],
+      "approval_required": true
+    },
+    {
+      "kind": "unit_test",
+      "priority": 2,
+      "title": "Test parse_amount precision",
+      "body": "Add test case for decimal precision in payment amount parsing.",
+      "target_path": "tests/test_parser.py",
+      "evidence_refs": ["symbol:src/parser.py:parse_amount"],
+      "approval_required": true
+    }
+  ],
+  "review_summary": "The change to parse_amount alters the signature of a function that is on an authoritative path to the finance.payment_events dataset. This is a contract change that could cause downstream consumers to receive incorrectly parsed payment amounts.",
+  "business_impact": "Payment amounts may be parsed incorrectly, affecting financial reporting and downstream payment processing.",
+  "root_cause": "Signature change to parse_amount function without corresponding downstream consumer updates.",
+  "evidence_coverage": {
+    "authoritative_bindings": 1,
+    "lineage_freshness_hours": 4
+  },
+  "_token_usage": {
+    "prompt_tokens": 1200,
+    "completion_tokens": 800,
+    "total_tokens": 2000
+  }
+}

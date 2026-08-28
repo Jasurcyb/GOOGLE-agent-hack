@@ -1,0 +1,96 @@
+{
+  "scenario": "ml_feature_impact",
+  "title": "ML Feature Impact — Feature pipeline change affects deployed model",
+  "description": "A data scientist modifies a feature engineering function that feeds an ML model in production. Regression Hunter traces the feature pipeline through DataHub lineage to the deployed model and flags it as high risk due to potential feature drift.",
+  "pr": {
+    "repository": "acme/ml-features",
+    "pr_number": 67,
+    "head_sha": "ghi789jkl012345678901234567890abcdefabcd34",
+    "author": "ds-carol",
+    "title": "Update payment_risk_score feature to use 90-day window instead of 30-day"
+  },
+  "analysis": {
+    "changed_symbol": "features.payment.compute_payment_risk_score",
+    "semantic_delta": {
+      "logic_change": true,
+      "feature_window_change": "30 days -> 90 days",
+      "potential_drift": true
+    },
+    "binding": {
+      "symbol_id": "features.payment.compute_payment_risk_score",
+      "datahub_urn": "urn:li:mlFeature:(urn:li:dataPlatform:feast,payment_risk_score,PROD)",
+      "binding_type": "AUTHORITATIVE",
+      "evidence": "Feast feature declaration: Feature(name='payment_risk_score', source=...)"
+    },
+    "lineage_path": [
+      "features.payment.compute_payment_risk_score",
+      "urn:li:mlFeature:(urn:li:dataPlatform:feast,payment_risk_score,PROD)",
+      "urn:li:mlModel:(urn:li:dataPlatform:sagemaker,payment_fraud_detector,PROD)",
+      "urn:li:mlModelDeployment:(urn:li:dataPlatform:sagemaker,payment_fraud_detector,v3,PROD)"
+    ],
+    "risk_assessment": {
+      "risk_score": 68,
+      "risk_level": "high",
+      "regression_probability": 0.58,
+      "impact_severity": 0.88,
+      "confidence": 75,
+      "requires_human_review": true
+    },
+    "affected_assets": [
+      {
+        "urn": "urn:li:mlFeature:(urn:li:dataPlatform:feast,payment_risk_score,PROD)",
+        "type": "ML_FEATURE",
+        "impact": "Feature distribution will shift due to 90-day window — model expects 30-day statistics",
+        "distance": 1,
+        "evidence_refs": ["symbol:features/payment.py:compute_payment_risk_score", "feast:feature:payment_risk_score"]
+      },
+      {
+        "urn": "urn:li:mlModel:(urn:li:dataPlatform:sagemaker,payment_fraud_detector,PROD)",
+        "type": "ML_MODEL",
+        "impact": "Model trained on 30-day feature distribution — prediction quality may degrade",
+        "distance": 2,
+        "evidence_refs": ["lineage:path:feature-to-model"]
+      },
+      {
+        "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:sagemaker,payment_fraud_detector,v3,PROD)",
+        "type": "ML_MODEL",
+        "impact": "Active production deployment — fraud detection accuracy may drop",
+        "distance": 3,
+        "evidence_refs": ["lineage:path:model-to-deployment"]
+      }
+    ],
+    "recommended_tests": [
+      {
+        "kind": "feature_schema_test",
+        "priority": 1,
+        "title": "Verify feature schema and distribution",
+        "body": "Check that payment_risk_score feature distribution with 90-day window is within acceptable drift threshold.",
+        "target_path": "tests/test_features.py::test_payment_risk_score_drift"
+      },
+      {
+        "kind": "inference_regression_test",
+        "priority": 2,
+        "title": "Run inference regression with updated feature",
+        "body": "Run the fraud detection model with the updated feature on historical data and compare predictions.",
+        "target_path": "tests/test_inference.py::test_fraud_detection_regression"
+      }
+    ]
+  },
+  "github_output": {
+    "check_run": {
+      "name": "Regression Hunter / pre-deploy impact",
+      "conclusion": "failure",
+      "summary": "Risk Score: 68/100 | Level: HIGH | Confidence: 75%"
+    },
+    "labels": ["regression-risk:high"]
+  },
+  "datahub_writeback": {
+    "assertion_candidates": [
+      {
+        "type": "FRESHNESS",
+        "dataset": "urn:li:mlFeature:(urn:li:dataPlatform:feast,payment_risk_score,PROD)",
+        "status": "PROPOSED"
+      }
+    ]
+  }
+}

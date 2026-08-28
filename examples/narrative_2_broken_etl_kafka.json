@@ -1,0 +1,87 @@
+{
+  "scenario": "broken_etl_kafka_consumer",
+  "title": "Broken ETL / Kafka Consumer — Schema change breaks downstream pipeline",
+  "description": "A developer modifies a Kafka event schema by renaming a field in the payment event producer. Regression Hunter detects the schema change, traces it through Kafka topic lineage to the ETL pipeline, and flags the downstream DataJob as at-risk.",
+  "pr": {
+    "repository": "acme/payment-gateway",
+    "pr_number": 192,
+    "head_sha": "def456abc789012345678901234567890abcdef12",
+    "author": "dev-bob",
+    "title": "Rename 'txn_amount' field to 'transaction_amount' in PaymentEvent"
+  },
+  "analysis": {
+    "changed_symbol": "src.events.PaymentEvent.serialize",
+    "semantic_delta": {
+      "schema_change": true,
+      "field_rename": "txn_amount -> transaction_amount",
+      "serialization_change": true
+    },
+    "binding": {
+      "symbol_id": "src.events.PaymentEvent.serialize",
+      "datahub_urn": "urn:li:dataset:(urn:li:dataPlatform:kafka,payment-events,PROD)",
+      "binding_type": "AUTHORITATIVE",
+      "evidence": "Kafka producer declaration: KafkaProducer(topic='payment-events')"
+    },
+    "lineage_path": [
+      "src.events.PaymentEvent.serialize",
+      "urn:li:dataset:(urn:li:dataPlatform:kafka,payment-events,PROD)",
+      "urn:li:dataJob:(urn:li:dataPlatform:airflow,payment_etl_dag,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)"
+    ],
+    "risk_assessment": {
+      "risk_score": 72,
+      "risk_level": "high",
+      "regression_probability": 0.62,
+      "impact_severity": 0.85,
+      "confidence": 80,
+      "requires_human_review": true
+    },
+    "affected_assets": [
+      {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:kafka,payment-events,PROD)",
+        "type": "DATASET",
+        "impact": "Kafka topic schema changed: field 'txn_amount' renamed to 'transaction_amount'",
+        "distance": 1,
+        "evidence_refs": ["symbol:src/events.py:PaymentEvent.serialize", "kafka:topic:payment-events"]
+      },
+      {
+        "urn": "urn:li:dataJob:(urn:li:dataPlatform:airflow,payment_etl_dag,PROD)",
+        "type": "DATA_JOB",
+        "impact": "ETL DAG expects 'txn_amount' field — will fail or produce nulls",
+        "distance": 2,
+        "evidence_refs": ["lineage:path:kafka-to-etl"]
+      },
+      {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+        "type": "DATASET",
+        "impact": "Downstream warehouse table will have missing amount data",
+        "distance": 3,
+        "evidence_refs": ["lineage:path:etl-to-warehouse"]
+      }
+    ],
+    "recommended_tests": [
+      {
+        "kind": "contract_test",
+        "priority": 1,
+        "title": "Verify PaymentEvent schema backward compatibility",
+        "body": "Ensure old consumers can still deserialize events with the renamed field.",
+        "target_path": "tests/test_contract.py::test_payment_event_schema_compat"
+      },
+      {
+        "kind": "containerized_integration_test",
+        "priority": 2,
+        "title": "Test ETL DAG with new event schema",
+        "body": "Run the payment_etl_dag with sample events using the new schema and verify output.",
+        "target_path": "tests/test_integration.py::test_etl_new_schema"
+      }
+    ]
+  },
+  "github_output": {
+    "check_run": {
+      "name": "Regression Hunter / pre-deploy impact",
+      "conclusion": "failure",
+      "summary": "Risk Score: 72/100 | Level: HIGH | Confidence: 80%"
+    },
+    "labels": ["regression-risk:high"]
+  }
+}

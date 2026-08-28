@@ -1,0 +1,21 @@
+FROM python:3.12-slim AS base
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN groupadd --gid 1000 rh && \
+    useradd --uid 1000 --gid rh --create-home --shell /bin/bash rh
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=rh:rh . .
+
+ENV PYTHONPATH=/app/packages/contracts:/app/packages/domain:/app/packages/datahub-adapter:/app/packages/github-adapter:/app/packages/llm-gateway:/app/packages/code-graph:/app/packages/observability:/app/packages/risk-model:/app/apps/api-gateway:/app/apps/pr-listener:/app/apps/repo-worker:/app/apps/diff-analyzer:/app/apps/code-intelligence:/app/apps/impact-analyzer:/app/apps/context-orchestrator:/app/apps/risk-engine:/app/apps/reasoning-agent:/app/apps/test-agent:/app/apps/publisher
+
+USER rh
+
+ENTRYPOINT ["python", "-m"]

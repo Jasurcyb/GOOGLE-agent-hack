@@ -1,0 +1,107 @@
+{
+  "scenario": "revenue_dashboard_impact",
+  "title": "Revenue Dashboard Impact — Breaking change to payment parser",
+  "description": "A developer changes the return type of parse_amount() from int to Decimal. Regression Hunter traces this through DataHub lineage to the finance revenue dashboard and flags it as CRITICAL.",
+  "pr": {
+    "repository": "acme/payments",
+    "pr_number": 481,
+    "head_sha": "abc123def456789012345678901234567890abcd",
+    "author": "dev-alice",
+    "title": "Refactor: use Decimal for payment amounts instead of int"
+  },
+  "analysis": {
+    "changed_symbol": "src.parser.parse_amount",
+    "semantic_delta": {
+      "signature_change": true,
+      "return_type_change": "int -> Decimal",
+      "serialization_change": true
+    },
+    "binding": {
+      "symbol_id": "src.parser.parse_amount",
+      "datahub_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "binding_type": "AUTHORITATIVE",
+      "evidence": "AST-extracted SQL reference: SELECT amount FROM finance.payment_events"
+    },
+    "lineage_path": [
+      "src.parser.parse_amount",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_summary,PROD)",
+      "urn:li:dashboard:(urn:li:dataPlatform:looker,finance_revenue_dashboard,PROD)"
+    ],
+    "risk_assessment": {
+      "risk_score": 85,
+      "risk_level": "critical",
+      "regression_probability": 0.78,
+      "impact_severity": 0.98,
+      "confidence": 85,
+      "requires_human_review": true,
+      "policy_floor_applied": true,
+      "policy_floor_reason": "Breaking change with authoritative path to regulated/payment asset and no relevant regression test"
+    },
+    "affected_assets": [
+      {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+        "type": "DATASET",
+        "impact": "payment amount may be parsed incorrectly due to type change",
+        "distance": 1,
+        "evidence_refs": ["symbol:src/parser.py:parse_amount", "lineage:path:8f7a"]
+      },
+      {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_summary,PROD)",
+        "type": "DATASET",
+        "impact": "aggregated totals may differ due to Decimal rounding",
+        "distance": 2,
+        "evidence_refs": ["lineage:path:8f7b"]
+      },
+      {
+        "urn": "urn:li:dashboard:(urn:li:dataPlatform:looker,finance_revenue_dashboard,PROD)",
+        "type": "DASHBOARD",
+        "impact": "revenue dashboard may display incorrect totals",
+        "distance": 3,
+        "evidence_refs": ["lineage:path:8f7c"]
+      }
+    ],
+    "recommended_tests": [
+      {
+        "kind": "unit_test",
+        "priority": 1,
+        "title": "Test parse_amount with negative values",
+        "body": "Add test case for negative payment amounts to ensure parser handles them correctly.",
+        "target_path": "tests/test_parser.py::test_parse_amount_negative"
+      },
+      {
+        "kind": "integration_test",
+        "priority": 2,
+        "title": "Test payment summary aggregation with Decimal",
+        "body": "Verify that daily summary aggregation produces same results with Decimal as with int.",
+        "target_path": "tests/test_integration.py::test_summary_decimal"
+      }
+    ]
+  },
+  "github_output": {
+    "check_run": {
+      "name": "Regression Hunter / pre-deploy impact",
+      "conclusion": "failure",
+      "summary": "Risk Score: 85/100 | Level: CRITICAL | Confidence: 85%"
+    },
+    "labels": ["regression-risk:critical"],
+    "comment_excerpt": "## Regression Hunter AI — Risk Assessment\n\n**Score:** 85/100 | **Level:** CRITICAL | **Confidence:** 85%\n\n> Requires human review before merge.\n\n### Highest-Impact Assets\n- **finance.payment_events** (distance: 1) — payment amount may be parsed incorrectly\n- **finance.payment_summary** (distance: 2) — aggregated totals may differ\n- **finance_revenue_dashboard** (distance: 3) — revenue dashboard may display incorrect totals"
+  },
+  "datahub_writeback": {
+    "report_document": "Regression Hunter/acme/payments/PR-481/abc123de",
+    "assessment_entity": "urn:li:regressionAssessment:run-018f0001",
+    "at_risk_tags": ["RegressionHunter:AtRisk"],
+    "assertion_candidates": [
+      {
+        "type": "NON_NULL",
+        "dataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+        "status": "PROPOSED"
+      },
+      {
+        "type": "ACCEPTED_RANGE",
+        "dataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+        "status": "PROPOSED"
+      }
+    ]
+  }
+}

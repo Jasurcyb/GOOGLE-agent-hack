@@ -1,0 +1,108 @@
+{
+  "teams": [
+    {
+      "name": "payments-platform",
+      "github_installation_id": "123456",
+      "repositories": ["acme/payments", "acme/payment-gateway"]
+    },
+    {
+      "name": "analytics-platform",
+      "github_installation_id": "123457",
+      "repositories": ["acme/analytics-etl", "acme/dashboards"]
+    }
+  ],
+  "policy": {
+    "version": "v1",
+    "risk_thresholds": {
+      "low": [0, 29],
+      "medium": [30, 59],
+      "high": [60, 79],
+      "critical": [80, 100]
+    },
+    "policy_floors": [
+      {
+        "conditions": ["breaking_change", "authoritative_payment_or_regulated_path", "no_regression_test"],
+        "floor_score": 85,
+        "description": "Breaking change with authoritative path to regulated/payment asset and no relevant regression test"
+      }
+    ],
+    "confidence_neutral_threshold": 70,
+    "allowed_actions": [
+      "github_check_run",
+      "github_label",
+      "github_comment_upsert",
+      "datahub_report_document",
+      "datahub_assessment_entity",
+      "datahub_structured_properties",
+      "datahub_at_risk_tag",
+      "datahub_assertion_candidate"
+    ],
+    "lineage_default_depth": 3,
+    "lineage_max_depth": 5,
+    "max_tool_calls": 12,
+    "max_lineage_expansions": 3,
+    "token_ceiling": 80000,
+    "graph_max_nodes": 10000,
+    "graph_max_edges": 50000
+  },
+  "risk_rules": [
+    {
+      "factor_code": "change_hazard",
+      "label": "Change Hazard",
+      "range": [0, 25],
+      "rules": [
+        {"condition": "deleted_public_function", "points": 12},
+        {"condition": "contract_schema_breaking", "points": 10},
+        {"condition": "auth_financial_parser", "points": 8},
+        {"condition": "generated_only_diff", "points": 0}
+      ]
+    },
+    {
+      "factor_code": "blast_radius",
+      "label": "Blast Radius",
+      "range": [0, 20],
+      "formula": "min(20, 4*ln(1 + weighted_downstream_assets))",
+      "weights": {"dashboard": 1, "pipeline": 2, "serving_api": 3, "ml_deployment": 4}
+    },
+    {
+      "factor_code": "business_criticality",
+      "label": "Business Criticality",
+      "range": [0, 25],
+      "rules": [
+        {"condition": "tier0_revenue_payment_regulated", "points": 25},
+        {"condition": "tier1", "points": 15},
+        {"condition": "ordinary_production", "points": 7}
+      ]
+    },
+    {
+      "factor_code": "test_gap",
+      "label": "Test Gap",
+      "range": [0, 15],
+      "rules": [
+        {"condition": "changed_behavior_untested", "points": 10},
+        {"condition": "coverage_decline", "points": 3},
+        {"condition": "no_integration_test_entry_point", "points": 2}
+      ]
+    },
+    {
+      "factor_code": "operational_history",
+      "label": "Operational History",
+      "range": [0, 10],
+      "rules": [
+        {"condition": "recurrent_incident", "points": 5},
+        {"condition": "high_deploy_frequency", "points": 3},
+        {"condition": "ownership_oncall_gap", "points": 2}
+      ]
+    },
+    {
+      "factor_code": "mitigating_evidence",
+      "label": "Mitigating Evidence",
+      "range": [-10, 0],
+      "rules": [
+        {"condition": "direct_regression_test_covers_changed_branch", "points": -5},
+        {"condition": "active_data_contract", "points": -3},
+        {"condition": "staged_canary_guardrail", "points": -2}
+      ]
+    }
+  ]
+}

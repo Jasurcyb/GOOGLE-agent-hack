@@ -1,0 +1,5 @@
+model_list:
+  - model_name: regression-hunter-mock
+    litellm_params:
+      model: mock
+      mock_response: '{"risk_score": 0, "risk_level": "low", "regression_probability": 0.0, "impact_severity": 0.0, "confidence": 50, "requires_human_review": false, "affected_assets": [], "recommended_tests": [], "review_summary": "mock", "business_impact": "none", "root_cause": "none"}'

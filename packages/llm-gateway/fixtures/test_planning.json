@@ -1,0 +1,35 @@
+{
+  "recommendations": [
+    {
+      "kind": "unit_test",
+      "priority": 1,
+      "title": "Test parse_amount with negative values",
+      "body": "def test_parse_amount_negative():\n    result = parse_amount('-100.50')\n    assert result == -100.50",
+      "target_path": "tests/test_parser.py::test_parse_amount_negative",
+      "framework": "pytest",
+      "setup": "",
+      "assertions": ["result == -100.50"],
+      "negative_case": "parse_amount('--100') should raise ValueError",
+      "mock_boundaries": [],
+      "traceability_id": "rec_001"
+    },
+    {
+      "kind": "unit_test",
+      "priority": 2,
+      "title": "Test parse_amount precision",
+      "body": "def test_parse_amount_precision():\n    result = parse_amount('100.005')\n    assert result == 100.01",
+      "target_path": "tests/test_parser.py::test_parse_amount_precision",
+      "framework": "pytest",
+      "setup": "",
+      "assertions": ["result == 100.01"],
+      "negative_case": "parse_amount('abc') should raise ValueError",
+      "mock_boundaries": [],
+      "traceability_id": "rec_002"
+    }
+  ],
+  "_token_usage": {
+    "prompt_tokens": 800,
+    "completion_tokens": 400,
+    "total_tokens": 1200
+  }
+}

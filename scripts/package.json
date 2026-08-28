@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "replay": "bash scripts/replay-fixture.sh",
+    "replay:payment": "bash scripts/replay-fixture.sh pr_payment_parser",
+    "replay:payment:local": "bash scripts/replay-fixture.sh pr_payment_parser http://localhost:8000"
+  }
+}

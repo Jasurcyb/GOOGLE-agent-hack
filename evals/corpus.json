@@ -1,0 +1,123 @@
+{
+  "entries": [
+    {
+      "pr_id": "pr-001",
+      "repository": "acme/payments",
+      "pr_number": 481,
+      "head_sha": "abc123def456",
+      "merged_at": "2025-06-15T10:00:00Z",
+      "features": {
+        "change_hazard_score": 12,
+        "blast_radius_score": 15,
+        "business_criticality_score": 25,
+        "test_gap_score": 10,
+        "operational_history_score": 5,
+        "mitigating_score": 0,
+        "authoritative_bindings": 1,
+        "is_breaking_change": 1
+      },
+      "predicted_score": 85,
+      "predicted_probability": 0.78,
+      "actual_outcome": "incident",
+      "incident_severity": "SEV2",
+      "rollback": true,
+      "tags": ["payment", "breaking_change", "tier0"]
+    },
+    {
+      "pr_id": "pr-002",
+      "repository": "acme/payments",
+      "pr_number": 490,
+      "head_sha": "def456ghi789",
+      "merged_at": "2025-07-01T14:00:00Z",
+      "features": {
+        "change_hazard_score": 3,
+        "blast_radius_score": 5,
+        "business_criticality_score": 7,
+        "test_gap_score": 2,
+        "operational_history_score": 0,
+        "mitigating_score": -5,
+        "authoritative_bindings": 0,
+        "is_breaking_change": 0
+      },
+      "predicted_score": 12,
+      "predicted_probability": 0.15,
+      "actual_outcome": "no_incident",
+      "incident_severity": null,
+      "rollback": false,
+      "tags": ["minor_refactor"]
+    },
+    {
+      "pr_id": "pr-003",
+      "repository": "acme/analytics-etl",
+      "pr_number": 230,
+      "head_sha": "ghi789jkl012",
+      "merged_at": "2025-07-10T09:00:00Z",
+      "features": {
+        "change_hazard_score": 10,
+        "blast_radius_score": 12,
+        "business_criticality_score": 15,
+        "test_gap_score": 10,
+        "operational_history_score": 3,
+        "mitigating_score": 0,
+        "authoritative_bindings": 2,
+        "is_breaking_change": 1,
+        "downstream_assets": 8,
+        "lineage_paths": 12
+      },
+      "predicted_score": 68,
+      "predicted_probability": 0.55,
+      "actual_outcome": "incident",
+      "incident_severity": "SEV3",
+      "rollback": false,
+      "tags": ["etl", "sql_change"]
+    },
+    {
+      "pr_id": "pr-004",
+      "repository": "acme/dashboards",
+      "pr_number": 105,
+      "head_sha": "jkl012mno345",
+      "merged_at": "2025-07-15T11:00:00Z",
+      "features": {
+        "change_hazard_score": 2,
+        "blast_radius_score": 3,
+        "business_criticality_score": 7,
+        "test_gap_score": 0,
+        "operational_history_score": 0,
+        "mitigating_score": -3,
+        "authoritative_bindings": 0,
+        "is_breaking_change": 0
+      },
+      "predicted_score": 9,
+      "predicted_probability": 0.08,
+      "actual_outcome": "no_incident",
+      "incident_severity": null,
+      "rollback": false,
+      "tags": ["dashboard", "cosmetic"]
+    },
+    {
+      "pr_id": "pr-005",
+      "repository": "acme/payments",
+      "pr_number": 501,
+      "head_sha": "mno345pqr678",
+      "merged_at": "2025-07-20T16:00:00Z",
+      "features": {
+        "change_hazard_score": 8,
+        "blast_radius_score": 18,
+        "business_criticality_score": 25,
+        "test_gap_score": 10,
+        "operational_history_score": 5,
+        "mitigating_score": 0,
+        "authoritative_bindings": 1,
+        "is_breaking_change": 1,
+        "downstream_assets": 15,
+        "lineage_paths": 20
+      },
+      "predicted_score": 78,
+      "predicted_probability": 0.70,
+      "actual_outcome": "incident",
+      "incident_severity": "SEV1",
+      "rollback": true,
+      "tags": ["payment", "critical", "ml_feature"]
+    }
+  ]
+}

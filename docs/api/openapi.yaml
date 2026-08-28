@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: Regression Hunter AI API
+  version: 0.1.0
+  description: |
+    Predict, explain, and prevent software regressions before a pull request is merged.
+    All APIs are versioned at `/v1`, authenticated with OIDC bearer tokens,
+    and enforce repository/team entitlements.
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8001
+    description: Local development
+  - url: https://regression-hunter.example.com
+    description: Production
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/webhooks/github:
+    post:
+      summary: Receive GitHub App webhook events
+      description: Handles pull_request, pull_request_review, and push events
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: GitHub webhook payload
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          schema: { type: string }
+        - name: X-GitHub-Delivery
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  run_id: { type: string, format: uuid }
+                  run_key: { type: string }
+        '403':
+          description: Invalid signature
+        '422':
+          description: Unprocessable entity
+
+  /v1/runs:
+    post:
+      summary: Manually start or replay an analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [repository, pr_number, head_sha, base_sha]
+              properties:
+                repository: { type: string, example: "acme/payments" }
+                pr_number: { type: integer, example: 481 }
+                head_sha: { type: string, example: "abc123def456" }
+                base_sha: { type: string, example: "fedcba987654" }
+                author_login: { type: string, default: "manual" }
+                trigger: { type: string, default: "manual" }
+      responses:
+        '202':
+          description: Analysis started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id: { type: string, format: uuid }
+                  status: { type: string }
+                  run_key: { type: string }
+
+  /v1/runs/{run_id}:
+    get:
+      summary: Get complete report and execution status
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Complete RegressionAssessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegressionAssessment'
+        '404':
+          description: Run not found
+
+  /v1/runs/{run_id}/graph:
+    get:
+      summary: Get impact graph nodes and edges for Cytoscape
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: view
+          in: query
+          schema: { type: string, enum: [impact, code, full], default: impact }
+      responses:
+        '200':
+          description: Paged graph JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id: { type: string }
+                  view: { type: string }
+                  nodes:
+                    type: array
+                    items: { type: object }
+                  edges:
+                    type: array
+                    items: { type: object }
+
+  /v1/pull-requests/{repo}/{number}/latest:
+    get:
+      summary: Get latest result for PR check UI
+      parameters:
+        - name: repo
+          in: path
+          required: true
+          schema: { type: string }
+        - name: number
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Latest report
+        '404':
+          description: No analysis found
+
+  /v1/runs/{run_id}/events:
+    get:
+      summary: Live status via Server-Sent Events
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  /v1/recommendations/{rec_id}/approve:
+    post:
+      summary: Approve a test patch or assertion proposal
+      parameters:
+        - name: rec_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approver]
+              properties:
+                approver: { type: string }
+                comment: { type: string }
+      responses:
+        '200':
+          description: Approved
+        '404':
+          description: Recommendation not found
+
+  /v1/runs/{run_id}/publish:
+    post:
+      summary: Retry or explicitly publish results
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Publish requested (idempotent)
+
+  /v1/runs/{run_id}/override:
+    post:
+      summary: Reasoned risk override
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [auditor, reason]
+              properties:
+                auditor: { type: string }
+                reason: { type: string }
+                expiry_hours: { type: integer, default: 24 }
+      responses:
+        '200':
+          description: Override applied
+
+  /v1/healthz:
+    get:
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: OK
+
+  /v1/readyz:
+    get:
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          description: Ready
+
+  /v1/metrics:
+    get:
+      summary: Prometheus metrics
+      security: []
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegressionAssessment:
+      type: object
+      properties:
+        run_id: { type: string }
+        risk_score: { type: integer, minimum: 0, maximum: 100 }
+        risk_level: { type: string, enum: [low, medium, high, critical] }
+        regression_probability: { type: number, minimum: 0, maximum: 1 }
+        impact_severity: { type: number, minimum: 0, maximum: 1 }
+        confidence: { type: integer, minimum: 0, maximum: 100 }
+        requires_human_review: { type: boolean }
+        affected_assets:
+          type: array
+          items: { $ref: '#/components/schemas/AffectedAsset' }
+        recommended_tests:
+          type: array
+          items: { $ref: '#/components/schemas/Recommendation' }
+        review_summary: { type: string }
+        business_impact: { type: string }
+        root_cause: { type: string }
+        evidence_coverage:
+          type: object
+          properties:
+            authoritative_bindings: { type: integer }
+            lineage_freshness_hours: { type: number }
+
+    AffectedAsset:
+      type: object
+      properties:
+        urn: { type: string }
+        type: { type: string }
+        impact: { type: string }
+        distance: { type: integer }
+        evidence_refs:
+          type: array
+          items: { type: string }
+
+    Recommendation:
+      type: object
+      properties:
+        kind: { type: string }
+        priority: { type: integer }
+        title: { type: string }
+        body: { type: string }
+        target_path: { type: string }
+        evidence_refs:
+          type: array
+          items: { type: string }
+        approval_required: { type: boolean }

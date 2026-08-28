@@ -1,0 +1,50 @@
+{
+  "run_id": "018f0001-0000-7000-8000-000000000001",
+  "run_key": "acme/payments:481:abc123def456789012345678901234567890abcd:v1",
+  "repository": "acme/payments",
+  "pr_number": 481,
+  "head_sha": "abc123def456789012345678901234567890abcd",
+  "base_sha": "fedcba987654321098765432109876543210fedc",
+  "author_login": "dev-alice",
+  "changed_files": [
+    {
+      "path": "src/parser.py",
+      "change_type": "modified",
+      "added_lines": 15,
+      "deleted_lines": 8,
+      "symbols_changed": [
+        {
+          "symbol_id": "src.parser.parse_amount",
+          "language": "python",
+          "change_type": "modified",
+          "old_signature": "def parse_amount(value: str) -> int",
+          "new_signature": "def parse_amount(value: str) -> Decimal",
+          "file_path": "src/parser.py",
+          "start_line": 42,
+          "end_line": 67,
+          "semantic_delta": {
+            "signature_change": true,
+            "return_type_change": "int -> Decimal",
+            "serialization_change": true
+          },
+          "analyzer_confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "entry_points_affected": [
+    {
+      "symbol_id": "src.api.process_payment",
+      "framework": "fastapi",
+      "route": "/api/v1/payments",
+      "method": "POST"
+    }
+  ],
+  "call_paths": [
+    {
+      "path": "src.api.process_payment -> src.parser.parse_amount",
+      "resolution": "EXACT",
+      "confidence": 1.0
+    }
+  ]
+}

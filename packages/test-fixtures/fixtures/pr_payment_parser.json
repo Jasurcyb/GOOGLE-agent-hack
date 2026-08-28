@@ -1,0 +1,22 @@
+{
+  "event_type": "pull_request",
+  "action": "opened",
+  "repository": {
+    "full_name": "acme/payments"
+  },
+  "pull_request": {
+    "number": 481,
+    "head": {
+      "sha": "abc123def456789012345678901234567890abcd"
+    },
+    "base": {
+      "sha": "fedcba987654321098765432109876543210fedc"
+    },
+    "user": {
+      "login": "dev-alice"
+    }
+  },
+  "installation": {
+    "id": 123456
+  }
+}

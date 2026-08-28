@@ -1,0 +1,24 @@
+{{- range $name, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.keda }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $name | kebabcase }}-scaler
+  namespace: {{ $.Values.namespaces.agent }}
+spec:
+  scaleTargetRef:
+    name: {{ $name | kebabcase }}
+  minReplicaCount: {{ $svc.keda.minReplicas }}
+  maxReplicaCount: {{ $svc.keda.maxReplicas }}
+  pollingInterval: 30
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: amqp
+        queueName: rh.{{ $name | kebabcase }}
+        mode: QueueLength
+        value: "{{ $svc.keda.queueDepth }}"
+        rabbitmqHostFromEnv: RABBITMQ_URL
+{{- end }}
+{{- end }}

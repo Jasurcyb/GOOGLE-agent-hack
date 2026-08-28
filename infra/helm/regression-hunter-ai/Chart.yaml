@@ -1,0 +1,13 @@
+apiVersion: v2
+name: regression-hunter-ai
+description: Predict, explain, and prevent software regressions before merge
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - regression
+  - datahub
+  - code-analysis
+  - risk-assessment
+maintainers:
+  - name: Regression Hunter Team

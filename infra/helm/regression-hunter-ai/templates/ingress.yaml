@@ -1,0 +1,46 @@
+{{- if .Values.services.apiGateway.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.namespaces.ingress }}
+  labels:
+    app: regression-hunter-ai
+    component: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: regression-hunter-ai
+    component: api-gateway
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: regression-hunter-api
+  namespace: {{ .Values.namespaces.ingress }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - regression-hunter.example.com
+      secretName: rh-tls
+  rules:
+    - host: regression-hunter.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+{{- end }}

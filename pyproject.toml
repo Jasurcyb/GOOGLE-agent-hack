@@ -1,0 +1,73 @@
+[project]
+name = "regression-hunter-ai"
+version = "0.1.0"
+description = "Predict, explain, and prevent software regressions before a pull request is merged"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "TCH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["contracts", "domain", "datahub_adapter", "github_adapter", "llm_gateway", "code_graph", "risk_model", "observability"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = [
+    "packages/contracts",
+    "packages/domain",
+    "packages/datahub-adapter",
+    "packages/github-adapter",
+    "packages/llm-gateway",
+    "packages/code-graph",
+    "packages/risk-model",
+    "packages/observability",
+    "packages/test-fixtures",
+    "apps/api-gateway",
+    "apps/pr-listener",
+    "apps/repo-worker",
+    "apps/diff-analyzer",
+    "apps/code-intelligence",
+    "apps/impact-analyzer",
+    "apps/context-orchestrator",
+    "apps/risk-engine",
+    "apps/reasoning-agent",
+    "apps/test-agent",
+    "apps/publisher",
+]
+
+
+[tool.uv.workspace]
+members = [
+    "apps/api-gateway",
+    "apps/pr-listener",
+    "apps/repo-worker",
+    "apps/diff-analyzer",
+    "apps/code-intelligence/python_analyzer",
+    "apps/impact-analyzer",
+    "apps/context-orchestrator",
+    "apps/risk-engine",
+    "apps/reasoning-agent",
+    "apps/test-agent",
+    "apps/publisher",
+    "packages/contracts",
+    "packages/domain",
+    "packages/datahub-adapter",
+    "packages/github-adapter",
+    "packages/llm-gateway",
+    "packages/code-graph",
+    "packages/risk-model",
+    "packages/observability",
+    "packages/test-fixtures",
+]

@@ -1,0 +1,200 @@
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  imageTag: "0.1.0"
+  env: production
+
+namespaces:
+  ingress: ingress
+  agent: regression-hunter
+  publisher: regression-hunter
+  sandbox: regression-hunter-sandbox
+
+postgresql:
+  enabled: true
+  ha: true
+  replicaCount: 2
+  persistence:
+    size: 50Gi
+    storageClass: ""
+  pitr:
+    enabled: true
+    retentionDays: 30
+
+rabbitmq:
+  enabled: true
+  clusterType: quorum
+  replicaCount: 3
+  persistence:
+    size: 20Gi
+
+redis:
+  enabled: true
+  ha: true
+  replicaCount: 3
+
+objectStorage:
+  enabled: true
+  bucket: regression-hunter
+  encryption: AES256
+
+services:
+  apiGateway:
+    enabled: true
+    replicas: 2
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+    hpa:
+      minReplicas: 2
+      maxReplicas: 10
+      cpuUtilization: 70
+
+  prListener:
+    enabled: true
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 300m, memory: 256Mi }
+
+  repoWorker:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 10
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 1000m, memory: 1Gi }
+
+  diffAnalyzer:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 8
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+
+  codeIntelligence:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 8
+      queueDepth: 5
+    resources:
+      requests: { cpu: 300m, memory: 512Mi }
+      limits: { cpu: 1000m, memory: 2Gi }
+
+  impactAnalyzer:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 6
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 1Gi }
+
+  contextOrchestrator:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 6
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+
+  riskEngine:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 4
+      queueDepth: 5
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 300m, memory: 256Mi }
+
+  reasoningAgent:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 4
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: 1000m, memory: 2Gi }
+
+  testAgent:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 4
+      queueDepth: 5
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+
+  publisher:
+    enabled: true
+    keda:
+      minReplicas: 1
+      maxReplicas: 4
+      queueDepth: 5
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 300m, memory: 256Mi }
+
+  frontend:
+    enabled: true
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 300m, memory: 256Mi }
+
+sandbox:
+  enabled: true
+  runtime: microvm
+  network: default-deny
+  pidsLimit: 100
+  cpuLimit: "1.0"
+  memoryLimit: 512Mi
+
+datahub:
+  endpoint: ""
+  token: ""
+  servicePrincipal: ""
+
+llm:
+  provider: openai
+  apiKey: ""
+  region: us-east-1
+  storeOutput: false
+
+secrets:
+  manager: aws-secrets-manager
+  workloadIdentity: true
+
+observability:
+  otelCollector: true
+  prometheus: true
+  sentry:
+    enabled: true
+    dsn: ""
+
+slo:
+  webhookAckSeconds: 2
+  firstCheckSeconds: 15
+  p95ReportMinutes: 8
+  criticalAlertMinutes: 10
+  durableAcceptance: 99.9
+
+security:
+  signedImages: true
+  sbomScan: true
+  pinnedParsers: true
+  dependencyScanning: true
+  readOnlyRootFilesystem: true
+  nonRoot: true

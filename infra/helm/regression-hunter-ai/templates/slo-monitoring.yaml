@@ -1,0 +1,106 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: regression-hunter-metrics
+  namespace: regression-hunter
+  labels:
+    app: regression-hunter-ai
+spec:
+  selector:
+    matchLabels:
+      app: regression-hunter-ai
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: regression-hunter-slo-alerts
+  namespace: regression-hunter
+  labels:
+    app: regression-hunter-ai
+spec:
+  groups:
+    - name: regression-hunter-slo
+      rules:
+        - alert: RHWebhookAckHighLatency
+          expr: histogram_quantile(0.95, rh_webhook_ack_seconds_bucket) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Webhook ack latency above 2s SLO"
+
+        - alert: RHFirstCheckSlow
+          expr: histogram_quantile(0.95, rh_first_check_seconds_bucket) > 15
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "First in-progress check above 15s SLO"
+
+        - alert: RHP95ReportSlow
+          expr: histogram_quantile(0.95, rh_report_duration_seconds_bucket) > 480
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "P95 report duration above 8min SLO"
+
+        - alert: RHDLQAgeHigh
+          expr: max(rh_dlq_message_age_seconds) > 3600
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "DLQ messages older than 1 hour"
+
+        - alert: RHCostPerRunHigh
+          expr: avg(rh_cost_per_run_usd) > 0.50
+          for: 30m
+          labels:
+            severity: info
+          annotations:
+            summary: "Average cost per run above $0.50"
+
+        - alert: RHScoreDistributionDrift
+          expr: abs(rh_score_avg - rh_score_avg:7d) / rh_score_avg:7d > 0.3
+          for: 1h
+          labels:
+            severity: info
+          annotations:
+            summary: "Score distribution drift detected"
+
+        - alert: RHLowConfidenceRateHigh
+          expr: rate(rh_low_confidence_runs_total[30m]) / rate(rh_runs_total[30m]) > 0.3
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "More than 30% of runs have low confidence"
+
+        - alert: RHDataHubErrors
+          expr: rate(rh_datahub_errors_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "DataHub error rate high"
+
+        - alert: RHLLMErrors
+          expr: rate(rh_llm_errors_total[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "LLM error rate high"
+
+        - alert: RHStaleCheckRuns
+          expr: max(rh_check_run_stale_seconds) > 600
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Stale GitHub check runs detected"

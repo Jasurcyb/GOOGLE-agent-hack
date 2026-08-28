@@ -1,0 +1,108 @@
+{
+  "entities": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "type": "DATASET",
+      "platform": "snowflake",
+      "environment": "PROD",
+      "name": "finance.payment_events",
+      "description": "Raw payment event stream from payment gateway",
+      "schema_columns": [
+        {"name": "payment_id", "type": "STRING", "nullable": false},
+        {"name": "amount", "type": "DECIMAL(18,2)", "nullable": false},
+        {"name": "currency", "type": "STRING", "nullable": false},
+        {"name": "status", "type": "STRING", "nullable": false},
+        {"name": "created_at", "type": "TIMESTAMP", "nullable": false}
+      ],
+      "tags": ["tier0", "finance", "regulated"],
+      "glossary_terms": ["Payment", "Financial Data"],
+      "domain": "finance",
+      "owners": [
+        {"urn": "urn:li:corpuser:finance-team", "type": "DATAOWNER"},
+        {"urn": "urn:li:corpuser:payments-oncall", "type": "ONCALL"}
+      ],
+      "criticality": 1.0,
+      "quality": {
+        "completeness": 0.99,
+        "freshness_hours": 2
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_summary,PROD)",
+      "type": "DATASET",
+      "platform": "snowflake",
+      "environment": "PROD",
+      "name": "finance.payment_summary",
+      "description": "Aggregated daily payment summary",
+      "schema_columns": [
+        {"name": "date", "type": "DATE", "nullable": false},
+        {"name": "total_amount", "type": "DECIMAL(18,2)", "nullable": false},
+        {"name": "transaction_count", "type": "INTEGER", "nullable": false}
+      ],
+      "tags": ["tier0", "finance"],
+      "domain": "finance",
+      "owners": [
+        {"urn": "urn:li:corpuser:finance-team", "type": "DATAOWNER"}
+      ],
+      "criticality": 0.9
+    },
+    {
+      "urn": "urn:li:dashboard:(urn:li:dataPlatform:looker,finance_revenue_dashboard,PROD)",
+      "type": "DASHBOARD",
+      "platform": "looker",
+      "name": "Finance Revenue Dashboard",
+      "description": "Daily revenue and payment dashboard for finance leadership",
+      "tags": ["tier0", "executive"],
+      "owners": [
+        {"urn": "urn:li:corpuser:cfo", "type": "DATAOWNER"}
+      ],
+      "criticality": 1.0
+    },
+    {
+      "urn": "urn:li:dataJob:(urn:li:dataPlatform:airflow,payment_etl_dag,PROD)",
+      "type": "DATA_JOB",
+      "platform": "airflow",
+      "name": "payment_etl_dag",
+      "description": "ETL pipeline that transforms raw payment events into summaries",
+      "owners": [
+        {"urn": "urn:li:corpuser:data-eng-team", "type": "DATAOWNER"}
+      ],
+      "criticality": 0.8
+    }
+  ],
+  "lineage": [
+    {
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "downstream": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_summary,PROD)",
+      "column_level": [
+        {"upstream_column": "amount", "downstream_column": "total_amount"}
+      ]
+    },
+    {
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_summary,PROD)",
+      "downstream": "urn:li:dashboard:(urn:li:dataPlatform:looker,finance_revenue_dashboard,PROD)"
+    },
+    {
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "downstream": "urn:li:dataJob:(urn:li:dataPlatform:airflow,payment_etl_dag,PROD)"
+    }
+  ],
+  "code_bindings": [
+    {
+      "symbol_id": "src.parser.parse_amount",
+      "datahub_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,finance.payment_events,PROD)",
+      "binding_type": "AUTHORITATIVE",
+      "evidence": "AST-extracted SQL reference: SELECT amount FROM finance.payment_events",
+      "confidence": 1.0
+    }
+  ],
+  "incidents": [
+    {
+      "urn": "urn:li:incident:payment_parsing_bug_2025",
+      "title": "Payment amount parsing bug",
+      "severity": "SEV2",
+      "start_time": "2025-06-15T10:00:00Z",
+      "description": "Incorrect parsing of negative payment amounts led to revenue misreporting"
+    }
+  ]
+}

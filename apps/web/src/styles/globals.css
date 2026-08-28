@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --rh-bg: #0a0a0a;
+  --rh-card: #141414;
+  --rh-border: #262626;
+  --rh-text: #e5e5e5;
+  --rh-muted: #737373;
+  --rh-accent: #3b82f6;
+  --rh-danger: #ef4444;
+  --rh-warning: #f59e0b;
+  --rh-success: #22c55e;
+}
+
+body {
+  background: var(--rh-bg);
+  color: var(--rh-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.card {
+  background: var(--rh-card);
+  border: 1px solid var(--rh-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.risk-low { color: var(--rh-success); }
+.risk-medium { color: var(--rh-warning); }
+.risk-high { color: #f97316; }
+.risk-critical { color: var(--rh-danger); }
