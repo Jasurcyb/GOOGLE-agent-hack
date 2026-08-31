@@ -70,6 +70,9 @@ class CloudMemoryBank:
             try:
                 doc_ref = self._firestore_db.collection(self.collection_name).document(session_id)
                 await doc_ref.set(record)
+                # Keep a local mirror so cross-session recall works even if a Firestore read hiccups
+                self._local_memory[session_id] = record
+                self._save_local()
                 return f"firestore://{self.collection_name}/{session_id}"
             except Exception as e:
                 logger.warning("Firestore write failed, saving locally: %s", e)
@@ -95,8 +98,24 @@ class CloudMemoryBank:
         query_terms: list[str],
         limit: int = 5,
     ) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+
+        if self._firestore_db is not None:
+            try:
+                docs = self._firestore_db.collection(self.collection_name).limit(200).stream()
+                async for doc in docs:
+                    item = doc.to_dict()
+                    if item:
+                        records.append(item)
+            except Exception as e:
+                logger.warning("Firestore search failed, falling back to local memory: %s", e)
+
+        for item in self._local_memory.values():
+            if item not in records:
+                records.append(item)
+
         results = []
-        for session_id, item in self._local_memory.items():
+        for item in records:
             content_str = json.dumps(item, default=str).lower()
             matches = sum(1 for term in query_terms if term.lower() in content_str)
             if matches > 0:

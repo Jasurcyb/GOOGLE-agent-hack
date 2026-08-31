@@ -191,6 +191,13 @@ class ContextBuilder:
         features["semantic_deltas"] = len(change_summary.get("semantic_deltas", []))
         features["entry_points"] = len(change_summary.get("entry_points", []))
 
+        semantic_deltas = change_summary.get("semantic_deltas", [])
+        if isinstance(semantic_deltas, list):
+            features["is_breaking_change"] = any(
+                isinstance(d, dict) and d.get("breaking") for d in semantic_deltas
+            )
+            features["changed_behavior_untested"] = len(semantic_deltas) > 0
+
         features["call_paths"] = len(code_impact.get("call_paths", []))
         features["unknown_resolution_count"] = code_impact.get("unknown_resolution_count", 0)
 

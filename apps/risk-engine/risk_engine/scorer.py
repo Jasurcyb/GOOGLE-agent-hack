@@ -76,6 +76,32 @@ class RiskFeatures:
         features.is_breaking_change = risk_features.get("is_breaking_change", False)
         features.has_authoritative_payment_path = risk_features.get("has_authoritative_payment_path", False)
 
+        # Backward-compatible derivation for bundles produced by ContextBuilder,
+        # which emits builder-level feature names rather than scorer-level ones.
+        if "change_hazard_score" not in risk_features:
+            semantic_deltas = risk_features.get("semantic_deltas", 0) or 0
+            entry_points = risk_features.get("entry_points", 0) or 0
+            features.change_hazard_score = min(
+                25.0,
+                4.0 * risk_features.get("symbols_changed", 0)
+                + 6.0 * semantic_deltas
+                + 3.0 * entry_points,
+            )
+        if "weighted_downstream" not in risk_features:
+            features.weighted_downstream = float(risk_features.get("downstream_assets", 0)) + 0.5 * float(
+                risk_features.get("lineage_paths", 0) or 0
+            )
+        if "has_tier0" not in risk_features:
+            features.has_tier0 = bool(risk_features.get("has_tier0_or_regulated", False))
+        if "has_regulated" not in risk_features:
+            features.has_regulated = bool(risk_features.get("has_tier0_or_regulated", False))
+        if "changed_behavior_untested" not in risk_features:
+            features.changed_behavior_untested = bool(risk_features.get("semantic_deltas", 0))
+        if "has_authoritative_payment_path" not in risk_features:
+            features.has_authoritative_payment_path = (
+                features.authoritative_bindings > 0 and features.has_payment
+            )
+
         return features
 
 

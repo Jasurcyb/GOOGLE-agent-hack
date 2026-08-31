@@ -110,7 +110,7 @@ flowchart TB
 ### 1. Clone & Setup Environment
 ```bash
 # Clone the repository
-git clone https://github.com/Jasurcyb/regression-hunter-agentic.git
+git clone https://github.com/Jasurcyb/GOOGLE-ahent-hack.git
 cd regression-hunter-agentic
 
 # Install dependencies
@@ -133,7 +133,13 @@ export GEMINI_API_KEY="your-gemini-api-key-here"
 python scripts/run_gemini_demo.py
 ```
 
-### 4. Run Test Suite
+### 4. Persist Telemetry to Google Cloud Firestore Memory Bank
+```bash
+python scripts/run_firestore_demo.py
+```
+*(Writes agent session memories to Firestore and demonstrates cross-session recall. Uses the local JSON fallback automatically when Firestore is not configured.)*
+
+### 5. Run Test Suite
 ```bash
 python -m pytest
 ```
@@ -141,14 +147,41 @@ python -m pytest
 
 ---
 
-## ☁️ Google Cloud Deployment (Cloud Run)
+## ☁️ Google Cloud Deployment — Free Path (No Billing Account)
 
-Regression Hunter AI includes complete production configuration for **Google Cloud Run** with automatic scale-to-zero (zero idle cost).
+**No Google Cloud billing account? No problem.** The full fleet runs on free-tier Google services, which satisfies the hackathon requirement to build on Google Cloud infrastructure:
 
-### 1-Command Cloud Run Deploy:
+1. **Google Cloud Firestore Memory Bank** — create a free project at [console.firebase.google.com](https://console.firebase.google.com) (Spark plan, no credit card) → *Build → Firestore Database → Create*. Then run:
+   ```bash
+   # One-time authentication (Application Default Credentials)
+   gcloud auth application-default-login
+
+   # Point the Memory Bank at your project
+   # Windows PowerShell
+   $env:GOOGLE_CLOUD_PROJECT="your-firebase-project-id"
+   # Linux / macOS
+   export GOOGLE_CLOUD_PROJECT="your-firebase-project-id"
+
+   python scripts/run_firestore_demo.py
+   ```
+   Verify records in **Firebase Console → Firestore → collection `agent_memory_bank`** (or Google Cloud Console → Firestore). This is the deployment evidence shown in our demo video.
+2. **Gemini 3.5 Flash** — free tier via the Gemini API: set `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com).
+3. **Run in Google Cloud Shell** (free, no billing): open [shell.cloud.google.com](https://shell.cloud.google.com), clone the repo, `pip install -r requirements.txt`, `python scripts/run_gemini_demo.py` — and capture the session in your demo video.
+
+> Cloud Run is **optional**: if you do have a billing account, the 1-command deploy below works as-is. Without it, the Firestore Memory Bank + Cloud Shell run is sufficient and cost-free.
+
+### Optional: Cloud Run Deploy (requires billing account)
 ```bash
-gcloud run deploy regression-hunter-agentic     --source .     --region us-central1     --platform managed     --allow-unauthenticated     --min-instances 0     --max-instances 2     --set-env-vars GEMINI_MODEL=gemini-2.5-flash
+gcloud run deploy regression-hunter-agentic \
+    --source . \
+    --region us-central1 \
+    --platform managed \
+    --allow-unauthenticated \
+    --min-instances 0 \
+    --max-instances 2 \
+    --set-env-vars GEMINI_MODEL=gemini-3.5-flash
 ```
+The repository also ships a one-click CI/CD pipeline: [`cloudbuild.yaml`](cloudbuild.yaml) (build → push → deploy on Cloud Run with scale-to-zero).
 
 ---
 
@@ -158,16 +191,21 @@ gcloud run deploy regression-hunter-agentic     --source .     --region us-centr
 ======================================================================
 === ALL THINGS AGENTIC HACKATHON: REGRESSION HUNTER AI (Gemini 3.5 + Google Cloud) ===
 ======================================================================
-1. [PR Listener] Run Key: acme/payment-service:42:a1b2c3d4...
+1. [PR Listener] Run Key: acme/payment-service:42:a1b2c3d4e5f6...:v1
 2. [Repo Worker] Snapshot created. Size: 1024 bytes
-3. [Diff Analyzer] File: payment/service.py | Language: python | Added Lines: 13
-4. [Code Intelligence] Discovered AST Symbols: ['payment.service.process_payment']
-5. [Context Orchestrator] EvidenceBundle Built (Downstream Blast Radius: 4 assets)
-6. [Risk Engine] Risk Score: 85/100 | Level: HIGH
-7. [Reasoning Agent] Generated & Verified Hypotheses via Gemini 3.5: 2
-8. [Test Agent Sandbox] Sandbox Validation Result: Valid=True | Generated Tests=2
-9. [Google Cloud Memory Bank] Audit Telemetry Persisted -> local://memory_bank/...
-10. [Publisher] GitHub Sticky Report & DataHub Assertions Published Successfully!
+3. [Diff Analyzer] File: payment/service.py | Language: python | +2/-1 lines
+4. [Code Intelligence] Discovered AST Symbols: ['payment.service.process_payment', 'payment.service.refund_payment']
+5. [Context Orchestrator] EvidenceBundle Built (Version: 1.0 | Downstream Blast Radius: 3 assets)
+6. [Risk Engine] Risk Score: 85/100 | Level: CRITICAL
+7. [Reasoning Agent | Gemini 3.5 live (gemini-3.5-flash)] Generated Hypotheses: 1
+8. [Test Agent Sandbox] Sandbox Validation Result: Valid=True | Test Passed=True
+9. [Google Cloud Memory Bank] Audit Telemetry Persisted -> firestore://agent_memory_bank/run-demo-001
+10. [Publisher] DataHub & GitHub Deliveries:
+   - Target: datahub_report | Status: published
+   - Target: datahub_assessment | Status: published
+   - Target: datahub_properties | Status: published
+   - Target: datahub_tags | Status: published
+   - Target: datahub_assertions | Status: published
 ```
 
 ---

@@ -20,6 +20,27 @@ from reasoning_agent.prompts import (
 
 logger = logging.getLogger("reasoning-agent")
 
+
+def _as_float(value: Any) -> float:
+    """LLMs sometimes return numbers as strings; coerce defensively."""
+    if isinstance(value, bool):
+        return 0.9 if value else 0.0
+    try:
+        return min(max(float(value), 0.0), 1.0)
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip().lower().rstrip("%")
+    try:
+        num = float(text)
+        if num > 1.0:
+            num = num / 100.0
+        return min(max(num, 0.0), 1.0)
+    except ValueError:
+        pass
+    return {"high": 0.9, "medium": 0.6, "low": 0.3, "very high": 0.95, "certain": 0.95}.get(
+        str(value).strip().lower(), 0.0
+    )
+
 INJECTION_FIELDS = (
     "change_summary", "code_impact", "datahub_impact",
     "historical_signals", "review_summary",
@@ -46,6 +67,7 @@ class ReasoningAgent:
         else:
             self._mcp = None
         self._config = config or AgentConfig()
+        self.last_meta: dict[str, Any] = {}
 
 
     async def reason(self, evidence_bundle: dict[str, Any]) -> dict[str, Any]:
@@ -78,13 +100,20 @@ class ReasoningAgent:
 
         response = await self._gateway.complete(request)
         self._config.tokens_used += response.token_usage.get("total_tokens", 0)
+        self.last_meta = {
+            "provider": response.provider,
+            "model": response.model,
+            "latency_ms": response.latency_ms,
+            "tokens": response.token_usage.get("total_tokens", 0),
+        }
 
         result = response.parsed or json.loads(response.content)
 
         verified = self._verify_hypotheses(result.get("hypotheses", []))
         result["hypotheses"] = verified
         result["unverified_count"] = sum(
-            1 for h in verified if h.get("confidence", 0) < 0.5 or not h.get("evidence_refs")
+            1 for h in verified
+            if _as_float(h.get("confidence", 0.0)) < 0.5 or not h.get("evidence_refs")
         )
 
         self._config.transition(AgentState.RECOMMENDING)
@@ -115,10 +144,13 @@ class ReasoningAgent:
     def _verify_hypotheses(self, hypotheses: list[dict]) -> list[dict]:
         verified: list[dict] = []
         for h in hypotheses:
-            refs = h.get("evidence_refs", [])
+            if not isinstance(h, dict):
+                continue
+            h["confidence"] = _as_float(h.get("confidence", 0.0))
+            refs = h.get("evidence_refs") or []
             if not refs:
                 h["verification_status"] = "UNVERIFIED"
-                h["confidence"] = min(h.get("confidence", 0.0), 0.3)
+                h["confidence"] = min(h["confidence"], 0.3)
             else:
                 h["verification_status"] = "VERIFIED"
             verified.append(h)
