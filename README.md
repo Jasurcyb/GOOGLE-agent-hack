@@ -110,8 +110,8 @@ flowchart TB
 ### 1. Clone & Setup Environment
 ```bash
 # Clone the repository
-git clone https://github.com/Jasurcyb/GOOGLE-ahent-hack.git
-cd regression-hunter-agentic
+git clone https://github.com/Jasurcyb/GOOGLE-agent-hack.git
+cd GOOGLE-agent-hack
 
 # Install dependencies
 pip install -r requirements.txt
@@ -172,7 +172,7 @@ python -m pytest
 
 ### Optional: Cloud Run Deploy (requires billing account)
 ```bash
-gcloud run deploy regression-hunter-agentic \
+gcloud run deploy google-agent-hack \
     --source . \
     --region us-central1 \
     --platform managed \
