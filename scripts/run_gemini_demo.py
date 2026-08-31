@@ -8,7 +8,11 @@ import asyncio
 import json
 import os
 import sys
+import warnings
 from pathlib import Path
+
+# Suppress noisy google-genai SDK deprecation notice (recommends Chat.send_message for AFC)
+warnings.filterwarnings("ignore", message=".*function calling.*")
 
 # Load .env (GEMINI_API_KEY etc.) if present — keeps the key out of shell history
 _ENV_FILE = Path(__file__).parent.parent / ".env"

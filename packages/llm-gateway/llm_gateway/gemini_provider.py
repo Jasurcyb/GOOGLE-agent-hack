@@ -56,6 +56,7 @@ class GeminiProvider:
                     temperature=request.temperature,
                     max_output_tokens=request.max_tokens,
                     response_mime_type='application/json' if request.output_schema else 'text/plain',
+                    automatic_function_calling=types.AutomaticFunctionCalling(disable=True),
                 )
 
                 response = await asyncio.to_thread(
